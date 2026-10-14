@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Customer | NOC Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="hidden w-64 shrink-0 border-r border-slate-800 bg-slate-900 p-6 md:flex md:flex-col">
+            <div class="mb-10">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-xl">N</div>
+                    <div>
+                        <h1 class="font-bold text-white">NOC Admin</h1>
+                        <p class="text-xs text-slate-400">Customer Management</p>
+                    </div>
+                </div>
+            </div>
+
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Management</p>
+            <nav class="space-y-2">
+                <a href="{% url 'client_list' %}" class="flex items-center gap-3 rounded-lg px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <span>▤</span> Customers
+                </a>
+                <a href="{% url 'client_add' %}" class="flex items-center gap-3 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white">
+                    <span>＋</span> Add Customer
+                </a>
+            </nav>
+
+            <div class="mt-auto space-y-2 border-t border-slate-800 pt-5">
+                <a href="{% url 'dashboard' %}" class="block rounded-lg px-4 py-3 text-sm text-slate-400 hover:bg-slate-800 hover:text-white">Customer Dashboard</a>
+                <a href="/admin/" class="block rounded-lg px-4 py-3 text-sm text-slate-400 hover:bg-slate-800 hover:text-white">Django Administration</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="min-w-0 flex-1">
+            <header class="border-b border-slate-800 bg-slate-900/60 px-5 py-5 sm:px-8">
+                <div class="mx-auto flex max-w-5xl items-center justify-between gap-4">
+                    <div>
+                        <p class="text-sm text-slate-400">NOC / Customers</p>
+                        <h2 class="mt-1 text-xl font-bold sm:text-2xl">Add Customer</h2>
+                    </div>
+                    <a href="{% url 'client_list' %}" class="shrink-0 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
+                        ← Back
+                    </a>
+                </div>
+            </header>
+
+            <div class="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
+                <div class="mb-7">
+                    <h3 class="text-lg font-semibold">Create a customer account</h3>
+                    <p class="mt-1 text-sm text-slate-400">Register the customer's login details and link their PPPoE account for traffic monitoring.</p>
+                </div>
+
+                {% if messages %}
+                    <div class="mb-6 space-y-3">
+                        {% for message in messages %}
+                            <div class="rounded-lg border border-red-900/70 bg-red-950/60 px-4 py-3 text-sm text-red-300">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="POST" class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl">
+                    {% csrf_token %}
+
+                    <div class="border-b border-slate-800 px-5 py-5 sm:px-7">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-lg text-blue-400">👤</div>
+                            <div>
+                                <h4 class="font-semibold">Customer Information</h4>
+                                <p class="text-sm text-slate-400">Enter the customer's identifying details.</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 grid gap-5 sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                                <label class="mb-2 block text-sm font-medium text-slate-300">Customer Name</label>
+                                <input type="text" name="customer_name" required autocomplete="name" placeholder="Aurora National School"
+                                    class="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-slate-300">Login Username</label>
+                                <input type="text" name="username" required autocomplete="off" placeholder="aurora_school"
+                                    class="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                                <p class="mt-2 text-xs text-slate-500">Used by the customer to log in.</p>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-slate-300">PPPoE Username</label>
+                                <input type="text" name="pppoe_username" required placeholder="aurora-school"
+                                    class="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                                <p class="mt-2 text-xs text-slate-500">Must match the PPPoE queue username configured on your MikroTik.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-5 py-5 sm:px-7 sm:py-6">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-lg text-violet-400">🔐</div>
+                            <div>
+                                <h4 class="font-semibold">Login Security</h4>
+                                <p class="text-sm text-slate-400">Set a password for the customer account.</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 grid gap-5 sm:grid-cols-2">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-slate-300">Password</label>
+                                <input type="password" name="password" required autocomplete="new-password"
+                                    class="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-slate-300">Confirm Password</label>
+                                <input type="password" name="confirm_password" required autocomplete="new-password"
+                                    class="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col-reverse gap-3 border-t border-slate-800 bg-slate-950/50 px-5 py-5 sm:flex-row sm:justify-end sm:px-7">
+                        <a href="{% url 'client_list' %}" class="rounded-lg border border-slate-700 px-5 py-3 text-center text-sm font-medium text-slate-300 hover:bg-slate-800">
+                            Cancel
+                        </a>
+                        <button type="submit" class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/30 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900">
+                            + Create Customer
+                        </button>
+                    </div>
+                </form>
+
+                <p class="mt-5 text-center text-xs text-slate-500">NOC Administration · Customer Account Management</p>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

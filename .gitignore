@@ -1,0 +1,49 @@
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+
+# Confidential files
+/rthyhyn.txt
+
+# Python virtual environments
+env/
+venv/
+.venv/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django generated files
+staticfiles/
+media/
+
+# Local databases and backups
+db.sqlite3
+db.sqlite3-*
+*.sqlite3
+*.sqlite3-*
+*.dump
+*.dump.gz
+
+# Logs
+*.log
+
+# Test and coverage files
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# IDE and editor settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+/rthyhyn.txt
