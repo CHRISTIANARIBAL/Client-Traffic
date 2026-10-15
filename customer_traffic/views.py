@@ -31,13 +31,17 @@ def client_traffic_detail(request, client_id):
         {"client": profile}
     )
 
-
 @login_required
-# @user_passes_test(is_admin)
 def client_traffic(request):
     try:
         profile = request.user.customerprofile
     except CustomerProfile.DoesNotExist:
+        print(
+            "TRAFFIC API DENIED:",
+            "user=", request.user.username,
+            "authenticated=", request.user.is_authenticated,
+            "reason=No customer profile",
+        )
         return JsonResponse({
             "error": "No customer profile is linked to this account."
         }, status=403)

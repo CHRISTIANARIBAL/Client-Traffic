@@ -182,12 +182,36 @@ function loadHistory(history) {
 }
 
 // Poll live traffic.
+
+const POLL_INTERVAL_MS = 1000;
+const MAX_RETRY_INTERVAL_MS = 15000;
+const REQUEST_TIMEOUT_MS = 8000;
+const POLL_JITTER_MS = 200;
+
+let pollTimer = null;
+let consecutiveFailures = 0;
+
+// Schedule the next request without allowing overlapping polls.
+function scheduleNextPoll(delay) {
+    clearTimeout(pollTimer);
+
+    if (document.hidden) {
+        return;
+    }
+
+    pollTimer = setTimeout(updateTraffic, delay);
+}
+
+// Poll live traffic.
 async function updateTraffic() {
-    if (trafficRequestInProgress) {
+    if (document.hidden || trafficRequestInProgress) {
         return;
     }
 
     trafficRequestInProgress = true;
+
+    let timeoutId = null;
+    let controller = null;
 
     try {
         const requestingHistory = !historyRequested;
@@ -195,8 +219,15 @@ async function updateTraffic() {
             ? "/api/traffic/?history=1"
             : "/api/traffic/";
 
+        controller = new AbortController();
+
+        timeoutId = setTimeout(() => {
+            controller.abort();
+        }, REQUEST_TIMEOUT_MS);
+
         const response = await fetch(url, {
             cache: "no-store",
+            signal: controller.signal,
             headers: {
                 "Accept": "application/json"
             }
@@ -208,20 +239,32 @@ async function updateTraffic() {
 
         const data = await response.json();
 
+        function isValidSpeed(value) {
+            return (
+                typeof value === "number" &&
+                Number.isFinite(value) &&
+                value >= 0
+            );
+        }
+
         if (
-            !Number.isFinite(Number(data.upload)) ||
-            !Number.isFinite(Number(data.download))
+            !data ||
+            typeof data !== "object" ||
+            !isValidSpeed(data.upload) ||
+            !isValidSpeed(data.download)
         ) {
             throw new Error("Invalid traffic data");
         }
 
-        // Load initial history if provided by the API.
-        if (requestingHistory && Array.isArray(data.history)) {
-            loadHistory(data.history);
+        // Request history only once after the first successful response.
+        if (requestingHistory) {
             historyRequested = true;
+
+            if (Array.isArray(data.history)) {
+                loadHistory(data.history);
+            }
         }
 
-        // Update upload and download cards.
         const upload = formatSpeed(data.upload);
         const download = formatSpeed(data.download);
 
@@ -231,16 +274,13 @@ async function updateTraffic() {
         document.getElementById("download").textContent = download.value;
         document.getElementById("download-unit").textContent = download.unit;
 
-        // Preserve the existing JavaScript-dependent element.
         document.getElementById("ac-name").textContent =
             data.ac || "Connected";
 
         setConnectionStatus(true);
 
-        // Add a new point for every successful live poll.
-        // Do not reuse the potentially stale database timestamp here.
+        // Add the latest live sample.
         const now = new Date();
-
         const time =
             now.getHours().toString().padStart(2, "0") + ":" +
             now.getMinutes().toString().padStart(2, "0") + ":" +
@@ -250,7 +290,6 @@ async function updateTraffic() {
         uploadData.push(Number(data.upload));
         downloadData.push(Number(data.download));
 
-        // Keep the most recent 300 points.
         while (trafficLabels.length > maxPoints) {
             trafficLabels.shift();
             uploadData.shift();
@@ -259,16 +298,58 @@ async function updateTraffic() {
 
         chart.update("none");
 
+        // Reset retry delay after a successful request.
+        consecutiveFailures = 0;
+
     } catch (error) {
+        consecutiveFailures++;
+
+        if (error.name !== "AbortError") {
+            console.warn("Traffic update failed:", error.message);
+        }
+
         setConnectionStatus(false);
 
     } finally {
-        // Essential: release the lock after every request.
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+        }
+
         trafficRequestInProgress = false;
+
+        if (!document.hidden) {
+            let delay;
+
+            if (consecutiveFailures > 0) {
+                // Retry progressively less often during an outage.
+                delay = Math.min(
+                    POLL_INTERVAL_MS *
+                        (2 ** Math.min(consecutiveFailures - 1, 4)),
+                    MAX_RETRY_INTERVAL_MS
+                );
+            } else {
+                // Slight jitter helps spread requests from many viewers.
+                delay = POLL_INTERVAL_MS +
+                    Math.random() * POLL_JITTER_MS;
+            }
+
+            scheduleNextPoll(delay);
+        }
     }
 }
 
-// Start immediately, then poll every second.
-// The lock prevents overlapping requests.
-updateTraffic();
-setInterval(updateTraffic, 1000);
+// Stop polling while the dashboard is hidden.
+// Refresh immediately when the customer returns.
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+    } else {
+        clearTimeout(pollTimer);
+        updateTraffic();
+    }
+});
+
+// Start the dashboard with a small random delay.
+scheduleNextPoll(Math.random() * POLL_JITTER_MS);
+

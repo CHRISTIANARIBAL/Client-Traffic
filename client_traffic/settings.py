@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -15,10 +16,7 @@ if not SECRET_KEY:
     )
 
 # Development mode
-DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in (
-    "true", "1", "yes"
-)
-
+DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv(
@@ -37,6 +35,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "customer_traffic",
+     "axes",
 ]
 
 MIDDLEWARE = [
@@ -47,6 +46,12 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "axes.middleware.AxesMiddleware",
+]
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 ROOT_URLCONF = "client_traffic.urls"
@@ -113,3 +118,35 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login/"
+
+# Login brute-force protection
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=5)
+
+# Lock out the same username + IP address combination
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+
+# Return HTTP 429 when locked out
+AXES_HTTP_RESPONSE_CODE = 429
+
+# Use Django's default cache/database configuration
+AXES_CACHE = "default"
+
+SECURE_SSL_REDIRECT = (
+    os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False") == "True"
+)
+# SECURE_SSL_REDIRECT=True
+# SESSION_COOKIE_SECURE=True
+# CSRF_COOKIE_SECURE=True
+
+SESSION_COOKIE_SECURE = (
+    os.getenv("DJANGO_COOKIE_SECURE", "False") == "True"
+)
+
+CSRF_COOKIE_SECURE = (
+    os.getenv("DJANGO_COOKIE_SECURE", "False") == "True"
+)
+
+SECURE_HSTS_SECONDS = int(
+    os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0")
+)
