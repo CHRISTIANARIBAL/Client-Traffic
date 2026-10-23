@@ -1,0 +1,83 @@
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?Set DB_NAME in .env.docker}
+      POSTGRES_USER: ${DB_USER:?Set DB_USER in .env.docker}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.docker}
+    volumes:
+      - postgres_data_v18:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  migrate:
+    build: .
+    env_file:
+      - .env.docker
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+    command:
+      - sh
+      - -c
+      - python manage.py collectstatic --noinput && gunicorn client_traffic.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 60
+
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - default
+      - shared_proxy 
+
+  collector:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+    command: ["python", "manage.py", "collect_traffic"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data_v18:
+
+networks:
+  default:
+  shared_proxy:
+    external: true
+    name: shared_proxy

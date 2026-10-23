@@ -47,3 +47,12 @@ htmlcov/
 Thumbs.db
 
 /rthyhyn.txt
+
+/locustfile.py
+/locustfile.py.backup
+/dashboard.js.backup
+# Local backups and temporary files
+*.backup
+
+# Accidental local file
+/-r
